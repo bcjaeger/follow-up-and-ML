@@ -45,3 +45,6 @@ rsconnect/
 # renv via capsule
 renv/
 .Rproj.user
+
+# sensitive data
+data
