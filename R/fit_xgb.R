@@ -7,9 +7,11 @@ fit_xgb <- function(trn,
                     predict_horizon,
                     n_predictors) {
 
+
   trn_x <- as.matrix(select(trn, -c(time, status, patient_id, age2)))
   trn_y <- as.matrix(select(trn, c(time, status)))
 
+  #n_predictors <- ncol(trn_x)
 
   xgb_label <- trn_y[, 1]
   censored <- trn_y[, 2] == 0

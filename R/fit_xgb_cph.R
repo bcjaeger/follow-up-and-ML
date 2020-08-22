@@ -36,7 +36,7 @@ fit_xgb_cph <- function(trn,
 
   if(return_fit)
     return(
-      list(fit = tidy(mdl, exponentiate = TRUE),
+      list(fit = tidy(mdl, exponentiate = TRUE, conf.int = TRUE),
            risk = mdl %>%
              predictRisk(newdata = trn_cph, times = predict_horizon) %>%
              set_colnames('risk') %>%
@@ -51,10 +51,13 @@ fit_xgb_cph <- function(trn,
   tst_y <- as.matrix(select(tst, c(time, status)))
   tst_cph <- as_tibble(cbind(tst_y, tst_x[, pred_names]))
 
-  predictRisk(mdl, newdata = tst_cph, times = predict_horizon) %>%
-    set_colnames('risk') %>%
-    as_tibble() %>%
-    mutate(patient_id = tst$patient_id)
+  predicted_risk <- try(expr = {
+    predictRisk(mdl, newdata = tst_cph, times = predict_horizon) %>%
+      set_colnames('risk') %>%
+      as_tibble() %>%
+      mutate(patient_id = tst$patient_id)
+  })
 
+  predicted_risk
 
 }

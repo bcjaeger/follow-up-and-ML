@@ -5,10 +5,13 @@
 ##' @title
 ##' @param fname
 compile_report <- function(fname,
-                           tbl_fit_final,
-                           tbl_incidence,
+                           tbl_final_fit,
+                           tbl_incidence_m1,
+                           tbl_incidence_w1,
                            fig_cv_m1,
-                           fig_cv_w1) {
+                           fig_cv_w1,
+                           fig_kap_m1,
+                           fig_kap_w1) {
 
   # setup ----
 
@@ -45,67 +48,97 @@ compile_report <- function(fname,
     height = numeric()
   )
 
-  # table: final fit summary (tbl_fit_final) ----
+  # tables: final fit summary (tbl_fit_final) ----
 
-  .tbl_fit_final <- tbl_fit_final %>%
-    as_grouped_data(group = 'time') %>%
-    as_flextable(hide_grouplabel = TRUE) %>%
-    set_header_labels(
-      tbl_miss = 'Number (%)\nmissing values',
-      tb1_stat = 'Mean (SD) or\nNumber (%)',
-      mdl_one = 'Unadjusted',
-      mdl_two = 'Adjusted'
-    ) %>%
-    add_header_row(values = c("", "Hazard ratio (95% CI)"),
-                   colwidths = c(3, 2)) %>%
-    width(width = 1.3) %>%
-    width(j = 1, width = 2) %>%
-    theme_box() %>%
-    align(part = 'all', align = 'center') %>%
-    align(part = 'all', j = 1, align = 'left') %>%
-    italic(i = ~!is.na(time)) %>%
-    bg(i = ~!is.na(time), bg = 'grey')
+  .tbl_final_fit <- tbl_final_fit %>%
+    map(
+      ~ .x %>%
+        as_grouped_data(group = 'time') %>%
+        as_flextable(hide_grouplabel = TRUE) %>%
+        set_header_labels(
+          tbl_miss = 'Number (%)\nmissing values',
+          tb1_stat = 'Mean (SD) or\nNumber (%)',
+          mdl_one = 'Unadjusted',
+          mdl_two = 'Adjusted'
+        ) %>%
+        add_header_row(values = c("", "Hazard ratio (95% CI)"),
+                       colwidths = c(3, 2)) %>%
+        width(width = 1.3) %>%
+        width(j = 1, width = 2) %>%
+        theme_box() %>%
+        align(part = 'all', align = 'center') %>%
+        align(part = 'all', j = 1, align = 'left') %>%
+        italic(i = ~!is.na(time)) %>%
+        bg(i = ~!is.na(time), bg = 'grey')
+    )
+
+  capper <- paste(
+    "Patient characteristics selected for inclusion in the",
+    c("pre-implant", "1-week", "1-month"),
+    "mortality risk prediction model."
+  )
 
   tbls_main %<>% add_row(
-    object = list(.tbl_fit_final),
-    caption = "Patient characteristics selected for inclusion in the final mortality risk prediction model."
+    object = list(.tbl_final_fit[[3]]),
+    caption = capper[3]
+  )
+
+  tbls_supp %<>% add_row(
+    object = list(.tbl_final_fit[[1]]),
+    caption = capper[1]
+  )
+
+  tbls_supp %<>% add_row(
+    object = list(.tbl_final_fit[[2]]),
+    caption = capper[2]
   )
 
   # table: risk group assessment (tbl_incidence) ----
 
-  .tbl_incidence <- tbl_incidence %>%
-    mutate(
-      term = recode(
-        term,
-        N = 'Number (%) of patients',
-        events = 'Number of events',
-        time = 'Months of follow up',
-        tbl_ir_estimate = 'Incidence rate (95% CI)',
-        tbl_ir_ratio = 'Incidence ratio (95% CI)'
-      )
-    ) %>%
-    as_grouped_data(group = 'group') %>%
-    as_flextable(hide_grouplabel = TRUE) %>%
-    set_header_labels(
-      term = '',
-      both_low = 'Low risk at\nboth visits',
-      m0_only = 'High risk at\npre-implant only',
-      m1_only = 'High risk at\nmonth 1 only',
-      both_high = 'High risk at\nboth visits'
-    ) %>%
-    add_header_row(values = c("", "1-year Mortality risk classification"),
-                   colwidths = c(1, 4)) %>%
-    width(width = 1.3) %>%
-    width(j = 1, width = 2) %>%
-    theme_box() %>%
-    align(part = 'all', align = 'center') %>%
-    align(part = 'all', j = 1, align = 'left') %>%
-    italic(i = ~!is.na(group)) %>%
-    bg(i = ~!is.na(group), bg = 'grey')
+
+
+  .tbl_incidence <- map(
+    .x = list(m1 = tbl_incidence_m1,
+              w1 = tbl_incidence_w1),
+    .f = ~ .x %>%
+      mutate(
+        term = recode(
+          term,
+          N = 'Number (%) of patients',
+          events = 'Number of events',
+          time = 'Months of follow up',
+          tbl_ir_estimate = 'Incidence rate (95% CI)',
+          tbl_ir_ratio = 'Incidence ratio (95% CI)'
+        )
+      ) %>%
+      as_grouped_data(group = 'group') %>%
+      as_flextable(hide_grouplabel = TRUE) %>%
+      set_header_labels(
+        term = '',
+        both_low  = 'Low risk at\nboth visits',
+        m0_only   = 'High risk at\npre-implant only',
+        m1_only   = 'High risk at\nmonth 1 only',
+        both_high = 'High risk at\nboth visits'
+      ) %>%
+      add_header_row(values = c("", "1-year Mortality risk classification"),
+                     colwidths = c(1, 5)) %>%
+      width(width = 1.1) %>%
+      width(j = 1, width = 2) %>%
+      theme_box() %>%
+      align(part = 'all', align = 'center') %>%
+      align(part = 'all', j = 1, align = 'left') %>%
+      italic(i = ~!is.na(group)) %>%
+      bg(i = ~!is.na(group), bg = 'grey')
+  )
 
   tbls_main %<>% add_row(
-    object = list(.tbl_incidence),
+    object = list(.tbl_incidence$m1),
     caption = "Incidence rates and ratios for patients classified as high or low risk at pre-implant and one month following implant of mechanical circulatory support device."
+  )
+
+  tbls_supp %<>% add_row(
+    object = list(.tbl_incidence$w1),
+    caption = "Incidence rates and ratios for patients classified as high or low risk at pre-implant and one week following implant of mechanical circulatory support device."
   )
 
   # figure: model comparison (xgboost versus reference) ----
@@ -126,6 +159,26 @@ compile_report <- function(fname,
       legend  = '',
       width   = 6.5,
       height  = 5.5
+    )
+
+  # figures: kaplan meier curves ----
+
+  figs_main %<>%
+    add_row(
+      object  = list(fig_kap_m1),
+      caption = "Incidence of death by risk group at month-1.",
+      legend  = '',
+      width   = 6.5,
+      height  = 4.5
+    )
+
+  figs_supp %<>%
+    add_row(
+      object  = list(fig_kap_w1),
+      caption = "Incidence of death by risk group at week-1.",
+      legend  = '',
+      width   = 6.5,
+      height  = 4.5
     )
 
   # Add pre-caption ---------------------------------------------------------

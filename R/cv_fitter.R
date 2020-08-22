@@ -27,6 +27,7 @@ cv_fitter <- function(data,
     test_set <- splits$test_ids[[i]]
 
     training <- filter(data, !(patient_id %in% test_set))
+
     testing  <- filter(data, patient_id %in% test_set)
 
     preproc <- make_preproc(training, testing, visit, predict_horizon)

@@ -4,7 +4,7 @@
 ##'
 ##' @title
 ##' @param cv_tidy
-make_fig_cv_blocks <- function(cv_tidy, models, times, add_squares = T) {
+visualize_cv_blocks <- function(cv_tidy, models, times, add_squares = T) {
 
   comparisons <- expand.grid(
     mdls = models,
